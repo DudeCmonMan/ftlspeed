@@ -1,0 +1,5 @@
+* text=auto
+
+# Batch files misbehave with LF endings
+*.bat text eol=crlf
+*.png binary

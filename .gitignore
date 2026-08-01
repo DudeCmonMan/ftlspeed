@@ -1,0 +1,15 @@
+# Build output
+bin/
+build/
+*.exe
+*.obj
+*.lib
+*.exp
+*.dll
+*.pdb
+
+# Generated from the host's system dbghelp.dll by tools/gen_proxy.py
+gen/
+
+__pycache__/
+*.pyc
