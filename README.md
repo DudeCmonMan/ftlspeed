@@ -13,6 +13,8 @@ If you like this mod, please consider a star! It's small, but I'd appreciate it.
 
 **Warning**: The game logic may not be able to keep up at high multipliers!
 
+![in-game indicator](https://raw.githubusercontent.com/DudeCmonMan/ftlspeed/main/res/sample_1.png)
+
 ## Install
 
 Download the zip from [Releases](../../releases) and extract it into your FTL folder, next to
