@@ -1,6 +1,6 @@
 # FTL Speed Mod
 
-**ftlspeed** for short. A speed control mod for **FTL: Faster Than Light 1.6.14** (32-bit). It
+A speed control mod for **FTL: Faster Than Light 1.6.14** (32-bit). It
 runs game time at a multiplier you choose, adjustable live with hotkeys while you play.
 
 It does not patch the game, modify `ftl.dat`, touch save files, or read or write game memory. It
@@ -21,9 +21,8 @@ dbghelp.dll
 speed.toml
 ```
 
-That is the whole mod. No injector, no launcher, no elevation, no Slipstream, and `ftl.dat` is
-untouched. Start FTL however you normally do - Steam included. (`README.md` comes along in the
-zip for reference; delete it if you like.)
+Start FTL however you normally do - Steam included. (`README.md` comes along in the
+zip for reference; delete it if you like.). It's picked up by FTL when you launch the game.
 
 Building from source instead? Run `build.bat`, then `deploy.bat` to copy it into place.
 
@@ -45,14 +44,11 @@ Defaults, all rebindable in `speed.toml`:
 
 Hotkeys only fire while FTL has focus.
 
+FTL binds every alpha key, so finding unbound keys was actually kind of rough, but if you'd like
+to rebind, you are free to.
+
 `]` and `[` jump to the next preset **past** the current speed, so after typing 2.7 into the
 overlay, `]` gives 3.0 and `[` gives 2.0.
-
-Picking your own is a minefield, because FTL binds **every letter a-z**, `1-7`, F1-F8, Space,
-Enter, `-`, `=`, `/` and Left Ctrl, and reserves **Shift** as its depower modifier (Shift+1
-unpowers weapon 1). What is actually free: `` ` `` `[` `]` `\` `;` `'` `,` `.` `8` `9` `0`, Tab,
-the numpad, the navigation cluster, and F9-F11. Avoid **F12** (Steam screenshot), **F10** and
-**Alt** (both open the window menu), and Right Alt (AltGr on international layouts).
 
 Rebind with a single character or a key name:
 
@@ -92,11 +88,7 @@ The `v` button drops down a row with `-` / `+` and a field for typing an exact s
 field, type a number, **Enter** to apply or **Esc** to cancel. While that field is focused the
 game does not see your keystrokes, so digits will not fire weapons.
 
-Drag the panel by its header, resize with the grip in the bottom-right corner. Where you leave it
-is written to **`lastwindowpos.toml`** beside `dbghelp.dll` and restored next launch — delete
-that file to reset to the default position. Clicks that land on the panel are kept from the game,
-so pressing a button never also orders a crew move behind it; clicks anywhere else pass straight
-through and the game stays fully playable with the overlay open.
+The overlay position is saved in lastwindowpos.toml. You'll see this generated on running the mod.
 
 ## VSync and the frame limiter
 
@@ -121,13 +113,6 @@ Our `dbghelp.dll` is a *proxy*: it forwards all 268 of its exports to the real
 exactly as before. On load it also installs the clock hooks. Only `FTLGame.exe`'s import table is
 patched, so `bass.dll`, `steam_api.dll` and the Steam overlay keep the real clock and audio does
 not change pitch.
-
-The overlay rides the same mechanism: `SwapBuffers` is hooked in that same import table, and the
-panel is drawn with OpenGL into FTL's back buffer just before the frame is presented. GL entry
-points are resolved at runtime, and if anything is missing the overlay disables itself and the
-hook becomes a straight pass-through - the game never breaks because the overlay could not draw.
-
-(This is the same mechanism Hyperspace uses, via `xinput1_4.dll`.)
 
 ## Build
 
@@ -158,13 +143,10 @@ At the prompt: a bare number sets the speed, `+` faster, `-` slower, `t` toggle,
 
 ## Compatibility
 
-Tested against vanilla FTL 1.6.14 only. **Untested with Hyperspace / Multiverse** - those
-require downgrading to 1.6.9 and load their own DLL into the same process.
+Tested against vanilla FTL 1.6.14 only; it's not tested against any other version.
 
 ## Note on Windows Defender
 
 A local `dbghelp.dll` beside a game executable is a textbook DLL-sideloading pattern, and
-Defender (or SmartScreen) may quarantine it on sight. If that happens, either exclude the game
-folder, or regenerate the proxy against a different import - `winmm.dll` is the usual second
-choice for FTL - by pointing `tools\gen_proxy.py` at `winmm.dll`, rebuilding, and copying
-`bin\winmm.dll` to the game root instead.
+Defender (or SmartScreen) may quarantine it on sight. If that happens, you can exclude the game
+folder or file and continue. This is a very common side loading pattern.
