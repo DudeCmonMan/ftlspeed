@@ -13,15 +13,19 @@ internally consistent at any speed.
 
 ## Install
 
-Two files in your FTL folder, next to `FTLGame.exe`:
+Download the zip from [Releases](../../releases) and extract it into your FTL folder, next to
+`FTLGame.exe`. Two files are all that matter:
 
 ```
 dbghelp.dll
 speed.toml
 ```
 
-That is the whole mod - two files, nothing else. No injector, no launcher, no elevation, no
-Slipstream, and `ftl.dat` is untouched. Start FTL however you normally do - Steam included.
+That is the whole mod. No injector, no launcher, no elevation, no Slipstream, and `ftl.dat` is
+untouched. Start FTL however you normally do - Steam included. (`README.md` comes along in the
+zip for reference; delete it if you like.)
+
+Building from source instead? Run `build.bat`, then `deploy.bat` to copy it into place.
 
 ## Uninstall
 

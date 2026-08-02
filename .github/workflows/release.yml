@@ -1,0 +1,45 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Pinned, not windows-latest: the proxy's export table is generated from the
+    # build machine's dbghelp.dll, so the image must not change under us.
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build
+        shell: cmd
+        run: build.bat
+
+      - name: Verify artifact
+        run: python tools/verify_release.py
+
+      - name: Stage and zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item -Path bin\dbghelp.dll,speed.toml,README.md -Destination dist\
+          Compress-Archive -Path dist\* -DestinationPath "ftlspeed-${{ github.ref_name }}.zip"
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "ftlspeed-${{ github.ref_name }}.zip" `
+            --title "ftlspeed ${{ github.ref_name }}" `
+            --generate-notes

@@ -14,5 +14,9 @@ gen/
 # Runtime state written by the overlay
 lastwindowpos.toml
 
+# Release staging
+dist/
+*.zip
+
 __pycache__/
 *.pyc
