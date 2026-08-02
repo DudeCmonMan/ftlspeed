@@ -9,6 +9,8 @@ changes only what time the game thinks it is, by hooking the clock functions FTL
 the clock - combat, jumps, oxygen, fires, animations - scales together, so the game stays
 internally consistent at any speed.
 
+If you like this mod, please consider a star! It's small, but I'd appreciate it.
+
 **Warning**: The game logic may not be able to keep up at high multipliers!
 
 ## Install
