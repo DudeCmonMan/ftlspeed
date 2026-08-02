@@ -16,6 +16,9 @@ void ConfigDefaults(SpeedConfig *cfg)
     cfg->fasterKey = VK_OEM_6;  /* ] */
     cfg->slowerKey = VK_OEM_4;  /* [ */
     cfg->toggleKey = VK_OEM_5;  /* \ */
+    cfg->overlay = 0;
+    cfg->overlayKey = VK_INSERT;
+    cfg->overlayScale = 0;      /* 0 = derive from resolution */
     cfg->presetCount = (int)(sizeof(defaults) / sizeof(defaults[0]));
     for (i = 0; i < cfg->presetCount; i++)
         cfg->presets[i] = defaults[i];
@@ -99,6 +102,26 @@ static void ParseKey(const char *value, int *out)
     }
 }
 
+void ConfigKeyName(int vk, char *out, size_t size)
+{
+    int i;
+    UINT character;
+
+    for (i = 0; i < (int)(sizeof(keyNames) / sizeof(keyNames[0])); i++) {
+        if (keyNames[i].vk == vk) {
+            strncpy_s(out, size, keyNames[i].name, _TRUNCATE);
+            return;
+        }
+    }
+    character = MapVirtualKeyA((UINT)vk, 2 /* MAPVK_VK_TO_CHAR */) & 0x7FFF;
+    if (character >= 32 && character < 127 && size >= 2) {
+        out[0] = (char)character;
+        out[1] = 0;
+        return;
+    }
+    strncpy_s(out, size, "?", _TRUNCATE);
+}
+
 static void ParseList(const char *value, SpeedConfig *cfg)
 {
     int count = 0;
@@ -170,6 +193,15 @@ void ConfigLoadToml(SpeedConfig *cfg, const wchar_t *path)
             ParseKey(value, &cfg->slowerKey);
         else if (strcmp(key, "toggle_key") == 0)
             ParseKey(value, &cfg->toggleKey);
+        else if (strcmp(key, "overlay") == 0)
+            ParseFlag(value, &cfg->overlay);
+        else if (strcmp(key, "overlay_key") == 0)
+            ParseKey(value, &cfg->overlayKey);
+        else if (strcmp(key, "overlay_scale") == 0) {
+            double parsed = cfg->overlayScale;
+            ParseNumber(value, &parsed);
+            cfg->overlayScale = (int)parsed;
+        }
     }
 
     fclose(file);

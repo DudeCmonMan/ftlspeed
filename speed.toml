@@ -6,13 +6,19 @@ show_in_title = true    # append [2.00x] to the window title
 
 presets = [1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0]
 
+# In-game overlay. Drag it by its header, resize with the corner grip; where you
+# leave it is remembered in lastwindowpos.toml.
+overlay = false         # visible at launch
+overlay_scale = 0       # 0 = size from your resolution, or set 1-4 yourself
+
 # Hotkeys. Only fire while FTL has focus.
 # A single character, or a name: PgUp PgDn Home End Ins Del Tab Space Backspace
 # CapsLock Up Down Left Right LAlt RAlt LCtrl RCtrl LShift RShift F1-F12
 # Numpad+ Numpad- Numpad* Numpad/
 # FTL binds every letter, 1-7, F1-F8, Space, Enter, - = / and LCtrl, and reserves
 # Shift as its depower modifier, so avoid those.
-turbo_key  = "`"        # hold for temporary turbo
-faster_key = "]"        # next preset
-slower_key = "["        # previous preset
-toggle_key = "\\"       # 1.0x <-> last speed
+turbo_key   = "`"       # hold for temporary turbo
+faster_key  = "]"       # next preset
+slower_key  = "["       # previous preset
+toggle_key  = "\\"      # 1.0x <-> last speed
+overlay_key = "Ins"     # show/hide the overlay

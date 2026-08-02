@@ -1,6 +1,7 @@
 #include "common.h"
 #include "clock.h"
 #include "iat.h"
+#include "overlay.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,29 +40,34 @@ static void ApplySpeed(double speed)
     ApplyEffective();
 }
 
+/* Next preset strictly past the current speed, so a manually entered value such as
+   2.7 steps to 3.0 going up and 2.0 going down. */
 static void StepPreset(int direction)
 {
-    double current = baseSpeed;
-    double bestDistance;
-    int best = 0;
+    double best = 0.0;
+    int found = 0;
     int i;
 
     if (cfg.presetCount <= 0)
         return;
-    bestDistance = fabs(cfg.presets[0] - current);
-    for (i = 1; i < cfg.presetCount; i++) {
-        double distance = fabs(cfg.presets[i] - current);
-        if (distance < bestDistance) {
-            bestDistance = distance;
-            best = i;
+
+    for (i = 0; i < cfg.presetCount; i++) {
+        double candidate = cfg.presets[i];
+        if (direction > 0 && candidate > baseSpeed) {
+            if (!found || candidate < best) { best = candidate; found = 1; }
+        } else if (direction < 0 && candidate < baseSpeed) {
+            if (!found || candidate > best) { best = candidate; found = 1; }
         }
     }
-    best += direction;
-    if (best < 0)
-        best = 0;
-    if (best >= cfg.presetCount)
-        best = cfg.presetCount - 1;
-    ApplySpeed(cfg.presets[best]);
+
+    if (!found) {
+        best = cfg.presets[0];
+        for (i = 1; i < cfg.presetCount; i++) {
+            if (direction > 0 ? cfg.presets[i] > best : cfg.presets[i] < best)
+                best = cfg.presets[i];
+        }
+    }
+    ApplySpeed(best);
 }
 
 static void ToggleSpeed(void)
@@ -70,6 +76,32 @@ static void ToggleSpeed(void)
         ApplySpeed(lastToggleSpeed);
     else
         ApplySpeed(1.0);
+}
+
+static BOOL (WINAPI *Real_SwapBuffers)(HDC);
+static int swapHooked;
+
+static BOOL WINAPI Hook_SwapBuffers(HDC dc)
+{
+    OverlayOnSwapBuffers(dc);
+    return Real_SwapBuffers(dc);
+}
+
+static void HostStepPreset(int direction)
+{
+    StepPreset(direction);
+}
+
+static void HostSetSpeed(double speed)
+{
+    ApplySpeed(speed);
+}
+
+static void HostReadStatus(OverlayStatus *out)
+{
+    out->baseSpeed = baseSpeed;
+    out->effectiveSpeed = ClockGetSpeed();
+    out->turboHeld = turboHeld;
 }
 
 static void HandleCommand(char *request, char *response, size_t responseSize)
@@ -101,9 +133,9 @@ static void HandleCommand(char *request, char *response, size_t responseSize)
         ClockStats stats;
         ClockGetStats(&stats);
         sprintf_s(response, responseSize,
-                  "OK qpc=%ld tick=%ld tgt=%ld sleep=%ld regressions=%ld hooks=%d/4\n",
+                  "OK qpc=%ld tick=%ld tgt=%ld sleep=%ld regressions=%ld hooks=%d/4 swap=%d\n",
                   stats.qpcCalls, stats.tickCalls, stats.timeGetTimeCalls,
-                  stats.sleepCalls, stats.regressions, hooksInstalled);
+                  stats.sleepCalls, stats.regressions, hooksInstalled, swapHooked);
         return;
     } else {
         sprintf_s(response, responseSize, "ERR unknown command\n");
@@ -165,25 +197,35 @@ static void StripSuffix(wchar_t *title)
         *marker = 0;
 }
 
+static HWND gameWindow;
+
+static void EnsureWindow(void)
+{
+    if (gameWindow && !IsWindow(gameWindow))
+        gameWindow = NULL;
+    if (gameWindow)
+        return;
+    EnumWindows(FindOwnWindow, (LPARAM)&gameWindow);
+    if (gameWindow)
+        OverlayAttachWindow(gameWindow);
+}
+
 static void UpdateTitle(void)
 {
-    static HWND window;
     static wchar_t original[TITLE_MAX];
     static wchar_t applied[TITLE_MAX];
     wchar_t current[TITLE_MAX];
     wchar_t wanted[TITLE_MAX];
+    HWND window = gameWindow;
 
-    if (!window) {
-        EnumWindows(FindOwnWindow, (LPARAM)&window);
-        if (!window)
-            return;
-    }
+    if (!window)
+        return;
 
     current[0] = 0;
     GetWindowTextW(window, current, TITLE_MAX);
     if (!current[0]) {
         /* FTL destroys and recreates its window on a fullscreen toggle. */
-        window = NULL;
+        gameWindow = NULL;
         applied[0] = 0;
         return;
     }
@@ -223,18 +265,25 @@ static DWORD WINAPI HotkeyThread(LPVOID parameter)
     int heldUp = 0;
     int heldDown = 0;
     int heldToggle = 0;
+    int heldOverlay = 0;
 
     (void)parameter;
 
     for (;;) {
         int ours = ForegroundIsOurs();
-        int turboDown = ours && (GetAsyncKeyState(cfg.turboKey) & 0x8000) != 0;
+        /* Speed keys stand down while the overlay's entry field owns the keyboard. */
+        int act = ours && !OverlayCapturesKeyboard();
+        int turboDown = act && (GetAsyncKeyState(cfg.turboKey) & 0x8000) != 0;
 
-        if (KeyPressed(cfg.fasterKey, &heldUp) && ours)
+        EnsureWindow();
+
+        if (KeyPressed(cfg.overlayKey, &heldOverlay) && ours)
+            OverlayToggle();
+        if (KeyPressed(cfg.fasterKey, &heldUp) && act)
             StepPreset(1);
-        if (KeyPressed(cfg.slowerKey, &heldDown) && ours)
+        if (KeyPressed(cfg.slowerKey, &heldDown) && act)
             StepPreset(-1);
-        if (KeyPressed(cfg.toggleKey, &heldToggle) && ours)
+        if (KeyPressed(cfg.toggleKey, &heldToggle) && act)
             ToggleSpeed();
 
         /* Gated on focus so losing focus mid-hold cannot latch turbo on. */
@@ -261,19 +310,25 @@ static void StartThread(LPTHREAD_START_ROUTINE entry)
 
 void SpeedCoreStart(HMODULE self)
 {
-    wchar_t path[MAX_PATH + 32];
+    wchar_t directory[MAX_PATH + 8];
+    wchar_t path[MAX_PATH + 40];
     wchar_t *slash;
     HMODULE kernel32;
     HMODULE winmm;
+    HMODULE gdi32;
     HMODULE game;
+    OverlayHost host;
 
     ConfigDefaults(&cfg);
-    if (GetModuleFileNameW(self, path, MAX_PATH)) {
-        slash = wcsrchr(path, L'\\');
+    directory[0] = 0;
+    if (GetModuleFileNameW(self, directory, MAX_PATH)) {
+        slash = wcsrchr(directory, L'\\');
         if (slash) {
             slash[1] = 0;
-            wcscat_s(path, MAX_PATH + 32, L"speed.toml");
+            swprintf_s(path, MAX_PATH + 40, L"%sspeed.toml", directory);
             ConfigLoadToml(&cfg, path);
+        } else {
+            directory[0] = 0;
         }
     }
     cfg.turboSpeed = ClampSpeed(cfg.turboSpeed);
@@ -309,6 +364,17 @@ void SpeedCoreStart(HMODULE self)
         hooksInstalled++;
     if (IatHook(game, "timeGetTime", (void *)Hook_timeGetTime))
         hooksInstalled++;
+
+    host.stepPreset = HostStepPreset;
+    host.setSpeed = HostSetSpeed;
+    host.readStatus = HostReadStatus;
+    OverlayInit(&cfg, directory, &host);
+
+    gdi32 = GetModuleHandleA("gdi32.dll");
+    if (gdi32)
+        Real_SwapBuffers = (BOOL (WINAPI *)(HDC))GetProcAddress(gdi32, "SwapBuffers");
+    if (Real_SwapBuffers && IatHook(game, "SwapBuffers", (void *)Hook_SwapBuffers))
+        swapHooked = 1;
 
     StartThread(PipeThread);
     StartThread(HotkeyThread);

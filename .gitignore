@@ -11,5 +11,8 @@ build/
 # Generated from the host's system dbghelp.dll by tools/gen_proxy.py
 gen/
 
+# Runtime state written by the overlay
+lastwindowpos.toml
+
 __pycache__/
 *.pyc

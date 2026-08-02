@@ -9,6 +9,8 @@ changes only what time the game thinks it is, by hooking the clock functions FTL
 the clock - combat, jumps, oxygen, fires, animations - scales together, so the game stays
 internally consistent at any speed.
 
+**Warning**: The game logic may not be able to keep up at high multipliers!
+
 ## Install
 
 Two files in your FTL folder, next to `FTLGame.exe`:
@@ -35,8 +37,12 @@ Defaults, all rebindable in `speed.toml`:
 | **]** | next preset (faster) |
 | **[** | previous preset (slower) |
 | **\\** | toggle between 1.0x and your last speed |
+| **Ins** | show / hide the overlay |
 
 Hotkeys only fire while FTL has focus.
+
+`]` and `[` jump to the next preset **past** the current speed, so after typing 2.7 into the
+overlay, `]` gives 3.0 and `[` gives 2.0.
 
 Picking your own is a minefield, because FTL binds **every letter a-z**, `1-7`, F1-F8, Space,
 Enter, `-`, `=`, `/` and Left Ctrl, and reserves **Shift** as its depower modifier (Shift+1
@@ -68,7 +74,25 @@ Read once at game start.
 | `turbo_speed` | how much holding `turbo_key` multiplies the current speed |
 | `show_in_title` | append `[2.00x]` to the window title |
 | `presets` | list that `faster_key` / `slower_key` step through |
-| `turbo_key` `faster_key` `slower_key` `toggle_key` | see Hotkeys above |
+| `overlay` | overlay visible at launch |
+| `overlay_scale` | `0` sizes it from your resolution, or set `1`-`4` yourself |
+| `turbo_key` `faster_key` `slower_key` `toggle_key` `overlay_key` | see Hotkeys above |
+
+## Overlay
+
+**Ins** shows a small panel drawn inside FTL's own frame — not a separate window, so it survives
+fullscreen and shows up in screenshots. It reads out the current speed, the boosted value while
+turbo is held, and the active keybinds.
+
+The `v` button drops down a row with `-` / `+` and a field for typing an exact speed: click the
+field, type a number, **Enter** to apply or **Esc** to cancel. While that field is focused the
+game does not see your keystrokes, so digits will not fire weapons.
+
+Drag the panel by its header, resize with the grip in the bottom-right corner. Where you leave it
+is written to **`lastwindowpos.toml`** beside `dbghelp.dll` and restored next launch — delete
+that file to reset to the default position. Clicks that land on the panel are kept from the game,
+so pressing a button never also orders a crew move behind it; clicks anywhere else pass straight
+through and the game stays fully playable with the overlay open.
 
 ## VSync and the frame limiter
 
@@ -93,6 +117,11 @@ Our `dbghelp.dll` is a *proxy*: it forwards all 268 of its exports to the real
 exactly as before. On load it also installs the clock hooks. Only `FTLGame.exe`'s import table is
 patched, so `bass.dll`, `steam_api.dll` and the Steam overlay keep the real clock and audio does
 not change pitch.
+
+The overlay rides the same mechanism: `SwapBuffers` is hooked in that same import table, and the
+panel is drawn with OpenGL into FTL's back buffer just before the frame is presented. GL entry
+points are resolved at runtime, and if anything is missing the overlay disables itself and the
+hook becomes a straight pass-through - the game never breaks because the overlay could not draw.
 
 (This is the same mechanism Hyperspace uses, via `xinput1_4.dll`.)
 

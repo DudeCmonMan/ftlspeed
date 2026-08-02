@@ -31,7 +31,7 @@ set "CFLAGS=/nologo /O2 /W3 /MT /D_CRT_SECURE_NO_WARNINGS"
 
 set "STEP=compiling bin\dbghelp.dll"
 echo [5/6] %STEP%...
-cl %CFLAGS% /Fobuild\ /Febin\dbghelp.dll /LD src\proxy.c src\core.c src\clock.c src\iat.c src\config.c gen\stubs.c user32.lib /link /DEF:gen\proxy.def
+cl %CFLAGS% /Fobuild\ /Febin\dbghelp.dll /LD src\proxy.c src\core.c src\clock.c src\iat.c src\config.c src\overlay.c gen\stubs.c user32.lib gdi32.lib /link /DEF:gen\proxy.def
 if errorlevel 1 goto :fail
 
 rem Debug tool only - deliberately NOT shipped with the mod, so it stays out of bin\.

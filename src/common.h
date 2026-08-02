@@ -17,12 +17,16 @@ typedef struct {
     int fasterKey;
     int slowerKey;
     int toggleKey;
+    int overlay;
+    int overlayKey;
+    int overlayScale;
     double presets[FTLSPEED_MAX_PRESETS];
     int presetCount;
 } SpeedConfig;
 
 void ConfigDefaults(SpeedConfig *cfg);
 void ConfigLoadToml(SpeedConfig *cfg, const wchar_t *path);
+void ConfigKeyName(int vk, char *out, size_t size);
 
 void SpeedCoreStart(HMODULE self);
 
