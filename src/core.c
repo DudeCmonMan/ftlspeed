@@ -40,8 +40,7 @@ static void ApplySpeed(double speed)
     ApplyEffective();
 }
 
-/* Next preset strictly past the current speed, so a manually entered value such as
-   2.7 steps to 3.0 going up and 2.0 going down. */
+/* Strictly past the current speed, so a manual 2.7 steps to 3.0 up and 2.0 down. */
 static void StepPreset(int direction)
 {
     double best = 0.0;
@@ -111,9 +110,7 @@ static void HandleCommand(char *request, char *response, size_t responseSize)
     while (length > 0 && (unsigned char)request[length - 1] <= ' ')
         request[--length] = 0;
 
-    if (strcmp(request, "GET") == 0) {
-        /* reply below */
-    } else if (strncmp(request, "SET ", 4) == 0) {
+    if (strncmp(request, "SET ", 4) == 0) {
         char *end;
         double value = strtod(request + 4, &end);
         if (end == request + 4) {
@@ -137,7 +134,7 @@ static void HandleCommand(char *request, char *response, size_t responseSize)
                   stats.qpcCalls, stats.tickCalls, stats.timeGetTimeCalls,
                   stats.sleepCalls, stats.regressions, hooksInstalled, swapHooked);
         return;
-    } else {
+    } else if (strcmp(request, "GET") != 0) {
         sprintf_s(response, responseSize, "ERR unknown command\n");
         return;
     }
@@ -271,7 +268,6 @@ static DWORD WINAPI HotkeyThread(LPVOID parameter)
 
     for (;;) {
         int ours = ForegroundIsOurs();
-        /* Speed keys stand down while the overlay's entry field owns the keyboard. */
         int act = ours && !OverlayCapturesKeyboard();
         int turboDown = act && (GetAsyncKeyState(cfg.turboKey) & 0x8000) != 0;
 
@@ -344,8 +340,7 @@ void SpeedCoreStart(HMODULE self)
     if (!Real_QueryPerformanceCounter || !Real_GetTickCount || !Real_Sleep)
         return;
 
-    /* No winmm loaded means the game has no timeGetTime import to hook, so the fallback
-       keeps that clock consistent without making the other three hooks conditional. */
+    /* No winmm means no timeGetTime import to hook, so fall back instead of bailing out. */
     winmm = GetModuleHandleA("winmm.dll");
     if (winmm)
         Real_timeGetTime = (DWORD (WINAPI *)(void))GetProcAddress(winmm, "timeGetTime");

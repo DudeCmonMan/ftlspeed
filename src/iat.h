@@ -3,9 +3,7 @@
 
 #include <windows.h>
 
-/* Patches every import thunk in `module` whose name matches `functionName`,
-   regardless of which DLL declares it. Returns the previous target, or NULL
-   if no matching import was found. */
+/* Matches by name whatever DLL declares it, so api-set redirection cannot hide an import. */
 void *IatHook(HMODULE module, const char *functionName, void *replacement);
 
 #endif

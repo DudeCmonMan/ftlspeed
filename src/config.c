@@ -113,7 +113,7 @@ void ConfigKeyName(int vk, char *out, size_t size)
             return;
         }
     }
-    character = MapVirtualKeyA((UINT)vk, 2 /* MAPVK_VK_TO_CHAR */) & 0x7FFF;
+    character = MapVirtualKeyA((UINT)vk, MAPVK_VK_TO_CHAR) & 0x7FFF;
     if (character >= 32 && character < 127 && size >= 2) {
         out[0] = (char)character;
         out[1] = 0;

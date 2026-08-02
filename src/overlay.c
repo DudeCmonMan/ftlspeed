@@ -99,8 +99,6 @@ static unsigned char g_keyHeld[32];
 static int g_autoScale;
 static int g_checkedError;
 
-/* ---------- GL resolution ---------- */
-
 static int ResolveGl(void)
 {
     HMODULE gl;
@@ -154,8 +152,6 @@ static int ResolveGl(void)
     return 1;
 }
 
-/* ---------- fonts ---------- */
-
 static int BuildFont(HDC dc, Font *font, int pixelHeight)
 {
     HFONT created, previous;
@@ -198,8 +194,6 @@ static int BuildFonts(HDC dc)
     return 1;
 }
 
-/* ---------- persisted position ---------- */
-
 static void LoadState(void)
 {
     FILE *file = NULL;
@@ -236,8 +230,6 @@ static void SaveState(void)
     fprintf(file, "expanded = %d\n", g_expanded);
     fclose(file);
 }
-
-/* ---------- layout ---------- */
 
 static void SpeedText(char *out, size_t size, const OverlayStatus *status)
 {
@@ -278,8 +270,7 @@ static void ComputeLayout(int clientW, int clientH, const OverlayStatus *status,
     (void)status;
     BindText(bind1, sizeof(bind1), bind2, sizeof(bind2));
 
-    /* Measured against the widest possible readout so the panel never resizes
-       when turbo engages or the speed gains a digit. */
+    /* Widest possible readout, so the panel never resizes when turbo engages. */
     contentW = TextWidth(&g_title, "00.00x TURBO") + gap + g_title.charH;
     if (TextWidth(&g_body, bind1) > contentW) contentW = TextWidth(&g_body, bind1);
     if (TextWidth(&g_body, bind2) > contentW) contentW = TextWidth(&g_body, bind2);
@@ -359,8 +350,6 @@ static int Inside(const Rect *r, int x, int y)
     return x >= r->x && x < r->x + r->w && y >= r->y && y < r->y + r->h;
 }
 
-/* ---------- drawing ---------- */
-
 static void Quad(float x, float y, float w, float h)
 {
     pglVertex2f(x, y);
@@ -429,8 +418,6 @@ static void Button(const Rect *r, const char *label, int hot)
     Text(&g_body, r->x + (r->w - TextWidth(&g_body, label)) / 2, r->y, label,
          0.85f, 1.0f, 1.0f, 1.0f);
 }
-
-/* ---------- input ---------- */
 
 static int EdgePressed(int vk, int slot)
 {
@@ -601,8 +588,6 @@ static void UpdateInput(HWND window, int clientW, int clientH)
     }
 }
 
-/* ---------- frame ---------- */
-
 /* glPushAttrib predates shaders, FBOs and texture units, so none of this is covered by it.
    Leaving any of it changed is what blanks the game on the following frame. */
 static GLint g_previousDrawFbo, g_previousReadFbo;
@@ -767,8 +752,6 @@ void OverlayOnSwapBuffers(HDC dc)
     }
 }
 
-/* ---------- window ---------- */
-
 static LRESULT CALLBACK OverlayWndProc(HWND window, UINT message, WPARAM wp, LPARAM lp)
 {
     if (g_visible && !g_failed) {
@@ -783,8 +766,7 @@ static LRESULT CALLBACK OverlayWndProc(HWND window, UINT message, WPARAM wp, LPA
                 return 0;
             break;
         case WM_INPUT: {
-            /* Movement must reach FTL or its own cursor freezes where it entered the
-               panel. Only the button events are withheld. */
+            /* Movement must reach FTL or its cursor freezes at the panel edge. */
             RAWINPUT raw;
             UINT size = sizeof(raw);
 

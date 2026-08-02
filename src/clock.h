@@ -11,8 +11,7 @@ typedef struct {
     LONG regressions;
 } ClockStats;
 
-/* Real_* must be resolved via GetProcAddress and ClockInit called BEFORE any
-   hook is installed, so a hook can never run against uninitialised bases. */
+/* Resolve these and call ClockInit before hooking, else a hook runs on empty bases. */
 extern BOOL  (WINAPI *Real_QueryPerformanceCounter)(LARGE_INTEGER *);
 extern DWORD (WINAPI *Real_GetTickCount)(void);
 extern DWORD (WINAPI *Real_timeGetTime)(void);
