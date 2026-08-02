@@ -9,7 +9,8 @@ changes only what time the game thinks it is, by hooking the clock functions FTL
 the clock - combat, jumps, oxygen, fires, animations - scales together, so the game stays
 internally consistent at any speed.
 
-If you like this mod, please consider a star! It's small, but I'd appreciate it.
+If you like this mod, please consider [a star](https://github.com/DudeCmonMan/ftlspeed)! It's
+small, but I'd appreciate it.
 
 **Warning**: The game logic may not be able to keep up at high multipliers!
 
@@ -17,7 +18,7 @@ If you like this mod, please consider a star! It's small, but I'd appreciate it.
 
 ## Install
 
-Download the zip from [Releases](../../releases) and extract it into your FTL folder, next to
+Download the zip from [Releases](https://github.com/DudeCmonMan/ftlspeed/releases) and extract it into your FTL folder, next to
 `FTLGame.exe`. Two files are all that matter:
 
 ```
@@ -80,6 +81,7 @@ Read once at game start.
 | `presets` | list that `faster_key` / `slower_key` step through |
 | `overlay` | overlay visible at launch |
 | `overlay_scale` | `0` sizes it from your resolution, or set `1`-`4` yourself |
+| `overlay_opacity` | panel background, `0.0` clear to `1.0` solid. Text, borders, the resize grip and the cursor stay fully opaque at every setting |
 | `turbo_key` `faster_key` `slower_key` `toggle_key` `overlay_key` | see Hotkeys above |
 
 ## Overlay
@@ -88,9 +90,10 @@ Read once at game start.
 fullscreen and shows up in screenshots. It reads out the current speed, the boosted value while
 turbo is held, and the active keybinds.
 
-The `v` button drops down a row with `-` / `+` and a field for typing an exact speed: click the
-field, type a number, **Enter** to apply or **Esc** to cancel. While that field is focused the
-game does not see your keystrokes, so digits will not fire weapons.
+The `v` button drops down a row with `-`, `+`, a field for typing an exact speed, and `set`.
+Click the field, type a number, then click **`set`** to apply it - applying is button-only, so
+Enter does nothing. **Esc** discards what you typed, as does clicking off the panel. While that
+field is focused the game does not see your keystrokes, so digits will not fire weapons.
 
 The overlay position is saved in lastwindowpos.toml. You'll see this generated on running the mod.
 
@@ -112,7 +115,7 @@ Windows searches the executable's own directory before `System32` when a program
 name. FTL imports `dbghelp.dll` and only ever calls it from its crash handler, so a `dbghelp.dll`
 sitting next to `FTLGame.exe` gets loaded first and nothing in normal play notices.
 
-Our `dbghelp.dll` is a *proxy*: it forwards all 268 of its exports to the real
+Our `dbghelp.dll` is a *proxy*: it forwards every one of its exports to the real
 `%SystemRoot%\SysWOW64\dbghelp.dll` - identical names, identical ordinals - so the game behaves
 exactly as before. On load it also installs the clock hooks. Only `FTLGame.exe`'s import table is
 patched, so `bass.dll`, `steam_api.dll` and the Steam overlay keep the real clock and audio does

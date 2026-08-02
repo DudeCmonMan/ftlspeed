@@ -19,6 +19,7 @@ void ConfigDefaults(SpeedConfig *cfg)
     cfg->overlay = 0;
     cfg->overlayKey = VK_INSERT;
     cfg->overlayScale = 0;      /* 0 = derive from resolution */
+    cfg->overlayOpacity = 0.50;
     cfg->presetCount = (int)(sizeof(defaults) / sizeof(defaults[0]));
     for (i = 0; i < cfg->presetCount; i++)
         cfg->presets[i] = defaults[i];
@@ -197,6 +198,8 @@ void ConfigLoadToml(SpeedConfig *cfg, const wchar_t *path)
             ParseFlag(value, &cfg->overlay);
         else if (strcmp(key, "overlay_key") == 0)
             ParseKey(value, &cfg->overlayKey);
+        else if (strcmp(key, "overlay_opacity") == 0)
+            ParseNumber(value, &cfg->overlayOpacity);
         else if (strcmp(key, "overlay_scale") == 0) {
             double parsed = cfg->overlayScale;
             ParseNumber(value, &parsed);
@@ -205,4 +208,10 @@ void ConfigLoadToml(SpeedConfig *cfg, const wchar_t *path)
     }
 
     fclose(file);
+
+    /* Negated compare so a NaN in the toml cannot reach glColor4f. */
+    if (!(cfg->overlayOpacity >= 0.0))
+        cfg->overlayOpacity = 0.0;
+    if (cfg->overlayOpacity > 1.0)
+        cfg->overlayOpacity = 1.0;
 }

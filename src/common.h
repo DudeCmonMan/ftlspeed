@@ -20,6 +20,7 @@ typedef struct {
     int overlay;
     int overlayKey;
     int overlayScale;
+    double overlayOpacity;
     double presets[FTLSPEED_MAX_PRESETS];
     int presetCount;
 } SpeedConfig;

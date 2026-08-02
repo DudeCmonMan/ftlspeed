@@ -98,6 +98,7 @@ static char g_edit[EDIT_MAX];
 static unsigned char g_keyHeld[32];
 static int g_autoScale;
 static int g_checkedError;
+static float g_opacity = 0.50f;
 
 static int ResolveGl(void)
 {
@@ -358,12 +359,18 @@ static void Quad(float x, float y, float w, float h)
     pglVertex2f(x, y + h);
 }
 
-static void Fill(const Rect *r, float cr, float cg, float cb, float ca)
+static void FillSolid(const Rect *r, float cr, float cg, float cb, float ca)
 {
     pglColor4f(cr, cg, cb, ca);
     pglBegin(GL_QUADS);
     Quad((float)r->x, (float)r->y, (float)r->w, (float)r->h);
     pglEnd();
+}
+
+/* No alpha parameter, so a background cannot keep a stale hardcoded one. */
+static void Fill(const Rect *r, float cr, float cg, float cb)
+{
+    FillSolid(r, cr, cg, cb, g_opacity);
 }
 
 static void Border(const Rect *r, int thickness, float cr, float cg, float cb, float ca)
@@ -411,9 +418,9 @@ static void DrawCursor(void)
 static void Button(const Rect *r, const char *label, int hot)
 {
     if (hot)
-        Fill(r, 0.25f, 0.45f, 0.45f, 0.95f);
+        Fill(r, 0.25f, 0.45f, 0.45f);
     else
-        Fill(r, 0.10f, 0.16f, 0.18f, 0.95f);
+        Fill(r, 0.10f, 0.16f, 0.18f);
     Border(r, 1, 0.45f, 0.80f, 0.80f, 0.90f);
     Text(&g_body, r->x + (r->w - TextWidth(&g_body, label)) / 2, r->y, label,
          0.85f, 1.0f, 1.0f, 1.0f);
@@ -659,7 +666,7 @@ static void DrawPanel(const OverlayStatus *status)
     SpeedText(speed, sizeof(speed), status);
     BindText(bind1, sizeof(bind1), bind2, sizeof(bind2));
 
-    Fill(&l->panel, 0.04f, 0.07f, 0.08f, 0.82f);
+    Fill(&l->panel, 0.04f, 0.07f, 0.08f);
     Border(&l->panel, 1, 0.45f, 0.80f, 0.80f, 0.85f);
 
     if (status->turboHeld)
@@ -677,7 +684,7 @@ static void DrawPanel(const OverlayStatus *status)
         Button(&l->minus, "-", Inside(&l->minus, g_mouseX, g_mouseY));
         Button(&l->plus, "+", Inside(&l->plus, g_mouseX, g_mouseY));
 
-        Fill(&l->field, 0.02f, 0.03f, 0.04f, 0.95f);
+        Fill(&l->field, 0.02f, 0.03f, 0.04f);
         Border(&l->field, 1, g_editing ? 1.0f : 0.45f, 0.80f, 0.80f, 0.90f);
         if (g_editing)
             sprintf_s(shown, sizeof(shown), "%s_", g_edit);
@@ -688,7 +695,8 @@ static void DrawPanel(const OverlayStatus *status)
         Button(&l->set, "set", g_editing && Inside(&l->set, g_mouseX, g_mouseY));
     }
 
-    Fill(&l->grip, 0.45f, 0.80f, 0.80f, 0.75f);
+    /* Solid: the resize handle has to stay findable at any opacity. */
+    FillSolid(&l->grip, 0.45f, 0.80f, 0.80f, 0.75f);
 
     if (g_mouseOverPanel || g_dragging || g_resizing)
         DrawCursor();
@@ -827,6 +835,8 @@ void OverlayInit(const SpeedConfig *cfg, const wchar_t *stateDir, const OverlayH
     g_visible = cfg->overlay;
     g_scale = cfg->overlayScale;
     g_autoScale = cfg->overlayScale <= 0;
+
+    g_opacity = (float)cfg->overlayOpacity;
 
     swprintf_s(g_statePath, MAX_PATH + 40, L"%slastwindowpos.toml", stateDir);
     LoadState();

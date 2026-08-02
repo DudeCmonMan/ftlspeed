@@ -10,6 +10,7 @@ presets = [1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0]
 # leave it is remembered in lastwindowpos.toml.
 overlay = false         # visible at launch
 overlay_scale = 0       # 0 = size from your resolution, or set 1-4 yourself
+overlay_opacity = 0.50  # panel background only, 0.0 clear to 1.0 solid; text stays crisp
 
 # Hotkeys. Only fire while FTL has focus.
 # A single character, or a name: PgUp PgDn Home End Ins Del Tab Space Backspace
