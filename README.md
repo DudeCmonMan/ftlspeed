@@ -75,7 +75,7 @@ Read once at game start.
 
 | key | meaning |
 | --- | --- |
-| `speed` | multiplier applied at launch (0.1 - 20.0) |
+| `speed` | multiplier applied at launch (0.1 - 200.0) |
 | `turbo_speed` | how much holding `turbo_key` multiplies the current speed |
 | `show_in_title` | append `[2.00x]` to the window title |
 | `presets` | list that `faster_key` / `slower_key` step through |
@@ -99,7 +99,9 @@ The overlay position is saved in lastwindowpos.toml. You'll see this generated o
 
 ## VSync and the frame limiter
 
-Speed is always correct, but **smoothness** depends on your video settings.
+Speed is always correct, but **smoothness** depends on your video settings. FTL normally clamps
+its per-frame speed factor to `0.5`, which limits clock-based speedups to roughly 2x at 60 FPS.
+The mod removes that clamp for FTL 1.6.14 so higher multipliers can take effect.
 
 Game logic advances with the scaled clock, so at 4x each rendered frame covers 4x as much game
 time. `Sleep` is scaled down to compensate, which lets FTL's own frame limiter render

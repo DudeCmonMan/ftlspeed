@@ -13,9 +13,65 @@
 
 static SpeedConfig cfg;
 static int hooksInstalled;
+static int speedFactorClampPatched;
 static double lastToggleSpeed = 2.0;
 static double baseSpeed = 1.0;
 static int turboHeld;
+
+static int RemoveSpeedFactorClamp(HMODULE game)
+{
+    /* FTL 1.6.14 CFPS::OnLoop: load 0.5f, compare calculated factor, clamp if above. */
+    static const BYTE pattern[] = {
+        0xf3, 0x0f, 0x10, 0x0d, 0, 0, 0, 0,
+        0xf2, 0x0f, 0x5a, 0xc0, 0x0f, 0x2e, 0xc8, 0x76, 0x56,
+        0xf3, 0x0f, 0x5f
+    };
+    BYTE *base = (BYTE *)game;
+    IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)base;
+    IMAGE_NT_HEADERS32 *nt;
+    IMAGE_SECTION_HEADER *section;
+    BYTE *match = NULL;
+    int matches = 0;
+    WORD i;
+
+    if (!base || dos->e_magic != IMAGE_DOS_SIGNATURE)
+        return 0;
+    nt = (IMAGE_NT_HEADERS32 *)(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE)
+        return 0;
+    section = IMAGE_FIRST_SECTION(nt);
+    for (i = 0; i < nt->FileHeader.NumberOfSections; i++, section++) {
+        DWORD j;
+        BYTE *start;
+        DWORD size;
+
+        if (!(section->Characteristics & IMAGE_SCN_MEM_EXECUTE))
+            continue;
+        start = base + section->VirtualAddress;
+        size = section->Misc.VirtualSize;
+        for (j = 0; j + sizeof(pattern) <= size; j++) {
+            BYTE *p = start + j;
+            if (memcmp(p, pattern, 4) == 0 &&
+                memcmp(p + 8, pattern + 8, sizeof(pattern) - 8) == 0) {
+                match = p;
+                matches++;
+            }
+        }
+    }
+    if (matches == 1) {
+        DWORD oldProtect;
+        BYTE *branch = match + 15;
+
+        if (VirtualProtect(branch, 2, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+            branch[0] = 0x90;
+            branch[1] = 0x90;
+            VirtualProtect(branch, 2, oldProtect, &oldProtect);
+            FlushInstructionCache(GetCurrentProcess(), branch, 2);
+            return 1;
+        }
+    }
+    return 0;
+}
 
 static double ClampSpeed(double speed)
 {
@@ -130,9 +186,10 @@ static void HandleCommand(char *request, char *response, size_t responseSize)
         ClockStats stats;
         ClockGetStats(&stats);
         sprintf_s(response, responseSize,
-                  "OK qpc=%ld tick=%ld tgt=%ld sleep=%ld regressions=%ld hooks=%d/4 swap=%d\n",
-                  stats.qpcCalls, stats.tickCalls, stats.timeGetTimeCalls,
-                  stats.sleepCalls, stats.regressions, hooksInstalled, swapHooked);
+                  "OK qpc=%ld tick=%ld tgt=%ld sleep=%ld regressions=%ld "
+                  "hooks=%d/4 swap=%d clamp=%d\n",
+                  stats.qpcCalls, stats.tickCalls, stats.timeGetTimeCalls, stats.sleepCalls,
+                  stats.regressions, hooksInstalled, swapHooked, speedFactorClampPatched);
         return;
     } else if (strcmp(request, "GET") != 0) {
         sprintf_s(response, responseSize, "ERR unknown command\n");
@@ -351,6 +408,7 @@ void SpeedCoreStart(HMODULE self)
     ApplySpeed(cfg.speed);
 
     game = GetModuleHandleW(NULL);
+    speedFactorClampPatched = RemoveSpeedFactorClamp(game);
     if (IatHook(game, "QueryPerformanceCounter", (void *)Hook_QueryPerformanceCounter))
         hooksInstalled++;
     if (IatHook(game, "GetTickCount", (void *)Hook_GetTickCount))
