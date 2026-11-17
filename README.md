@@ -3,11 +3,10 @@
 A speed control mod for **FTL: Faster Than Light 1.6.14** (32-bit). It
 runs game time at a multiplier you choose, adjustable live with hotkeys while you play.
 
-It does not patch the game, modify `ftl.dat`, touch save files, or read or write game memory. It
-changes only what time the game thinks it is, by hooking the clock functions FTL imports:
-`QueryPerformanceCounter`, `GetTickCount`, `timeGetTime` and `Sleep`. Everything that follows
-the clock - combat, jumps, oxygen, fires, animations - scales together, so the game stays
-internally consistent at any speed.
+It does not modify `FTLGame.exe` on disk, `ftl.dat`, or save files. It hooks the clock functions FTL
+imports: `QueryPerformanceCounter`, `GetTickCount`, `timeGetTime` and `Sleep`, and patches two bytes
+in memory to remove the speed-factor clamp. Everything that follows the clock - combat, jumps,
+oxygen, fires, animations - scales together, so the game stays internally consistent at any speed.
 
 If you like this mod, please consider [a star](https://github.com/DudeCmonMan/ftlspeed)! It's
 small, but I'd appreciate it.
@@ -118,10 +117,10 @@ name. FTL imports `dbghelp.dll` and only ever calls it from its crash handler, s
 sitting next to `FTLGame.exe` gets loaded first and nothing in normal play notices.
 
 Our `dbghelp.dll` is a *proxy*: it forwards every one of its exports to the real
-`%SystemRoot%\SysWOW64\dbghelp.dll` - identical names, identical ordinals - so the game behaves
-exactly as before. On load it also installs the clock hooks. Only `FTLGame.exe`'s import table is
-patched, so `bass.dll`, `steam_api.dll` and the Steam overlay keep the real clock and audio does
-not change pitch.
+`%SystemRoot%\SysWOW64\dbghelp.dll` - identical names, identical ordinals. On load it also hooks
+`FTLGame.exe`'s clock imports and patches two bytes in memory to remove the speed clamp. Other
+modules keep the real clock, so `bass.dll`, `steam_api.dll` and the Steam overlay are unaffected
+and audio does not change pitch.
 
 ## Build
 
